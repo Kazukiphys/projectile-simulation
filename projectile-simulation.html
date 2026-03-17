@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>斜方投射シミュレーション</title>
+
+<style>
+body{
+font-family:sans-serif;
+}
+
+canvas{
+border:1px solid black;
+}
+</style>
+
+</head>
+
+<body>
+
+<h2>斜方投射シミュレーション</h2>
+
+角度 θ = <span id="angleValue">45</span>°
+<input id="angle" type="range" min="10" max="80" value="45">
+
+<br><br>
+
+初速度 v = <span id="speedValue">30</span> m/s
+<input id="speed" type="range" min="10" max="80" value="30">
+
+<br><br>
+
+<label>
+<input type="checkbox" id="autoscale" checked>
+自動スケーリング
+</label>
+
+<br><br>
+
+<button onclick="start()">発射</button>
+
+<h3>結果</h3>
+
+最高点高さ : <span id="maxHeight">-</span> m  
+<br>
+水平到達距離 : <span id="range">-</span> m  
+
+<br><br>
+
+<canvas id="canvas" width="800" height="400"></canvas>
+
+<script>
+
+const g = 9.8
+
+let canvas = document.getElementById("canvas")
+let ctx = canvas.getContext("2d")
+
+let t = 0
+let running = false
+
+let trajectory = []
+
+let ground = 350
+
+let scale = 1
+
+
+// 固定スケール用（最大条件）
+const vmax = 80
+const angleRangeMax = 45*Math.PI/180
+const angleHeightMax = 80*Math.PI/180
+
+const maxRange = vmax*vmax*Math.sin(2*angleRangeMax)/g
+const maxHeight = vmax*vmax*Math.sin(angleHeightMax)**2/(2*g)
+
+const fixedScaleX = (canvas.width-20)/maxRange
+const fixedScaleY = (ground-30)/maxHeight
+const fixedScale = Math.min(fixedScaleX,fixedScaleY)
+
+
+
+function updateSlider(){
+
+let angle = document.getElementById("angle").value
+let speed = document.getElementById("speed").value
+
+document.getElementById("angleValue").textContent = angle
+document.getElementById("speedValue").textContent = speed
+
+}
+
+document.getElementById("angle").oninput = updateSlider
+document.getElementById("speed").oninput = updateSlider
+
+updateSlider()
+
+
+
+function start(){
+
+t = 0
+trajectory = []
+
+let angle = document.getElementById("angle").value*Math.PI/180
+let v = document.getElementById("speed").value
+
+let range = v*v*Math.sin(2*angle)/g
+let height = v*v*Math.sin(angle)**2/(2*g)
+
+document.getElementById("range").textContent = range.toFixed(2)
+document.getElementById("maxHeight").textContent = height.toFixed(2)
+
+
+
+let auto = document.getElementById("autoscale").checked
+
+if(auto){
+
+let scaleX = (canvas.width-20)/range
+let scaleY = (ground-30)/height
+
+scale = Math.min(scaleX,scaleY)
+
+}else{
+
+scale = fixedScale
+
+}
+
+
+
+running = true
+loop()
+
+}
+
+
+
+function loop(){
+
+if(!running) return
+
+ctx.clearRect(0,0,canvas.width,canvas.height)
+
+let angle = document.getElementById("angle").value*Math.PI/180
+let v = document.getElementById("speed").value
+
+let x = v*Math.cos(angle)*t
+let y = v*Math.sin(angle)*t - 0.5*g*t*t
+
+trajectory.push({x:x,y:y})
+
+
+
+ctx.fillRect(0,ground,canvas.width,5)
+
+
+
+ctx.beginPath()
+ctx.lineWidth = 2
+
+for(let i=0;i<trajectory.length;i++){
+
+let px = trajectory[i].x*scale
+let py = ground - trajectory[i].y*scale
+
+if(i==0){
+ctx.moveTo(px,py)
+}else{
+ctx.lineTo(px,py)
+}
+
+}
+
+ctx.stroke()
+
+
+
+ctx.beginPath()
+ctx.arc(x*scale,ground-y*scale,8,0,Math.PI*2)
+ctx.fill()
+
+
+
+if(y>=0){
+
+t += 0.15
+requestAnimationFrame(loop)
+
+}else{
+
+running=false
+
+}
+
+}
+
+</script>
+
+</body>
+</html>
